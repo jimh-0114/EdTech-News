@@ -262,17 +262,7 @@
       );
     }
 
-    // ── 戰略焦點「內文」：每集自訂段落（2026-11-09）──────────────
-    // 試算表「內文」欄用簡單記號：## 段落標題、**小標**（單獨一行）、
-    // - 或 ● 條列、1. 編號、| 表格 |、**粗體**、網址自動變連結。
-    // 「內文」空白的舊集數，照舊顯示 WHAT／SO WHAT／NOW WHAT 三塊。
-    const SECTION_COLORS = [
-      { c: "#24507A", bg: "#EEF3F8" },
-      { c: "#7A3E8E", bg: "#F5EFF7" },
-      { c: "#2F6B4F", bg: "#EDF5F0" },
-      { c: "#B4560F", bg: "#FBF1E6" },
-    ];
-
+    // ── 戰略焦點「來源」：- 條列、**粗體**、網址自動變連結（2026-11-09）──
     function Inline({ text }) {
       const out = [];
       String(text).split(/(\*\*[^*]+\*\*|https?:\/\/[^\s）)」]+)/).forEach((p, i) => {
@@ -336,35 +326,6 @@
       });
     }
 
-    // 「內文」→ 依 ## 切成幾個色塊段落；第一個 ## 之前的文字放在最前面、不加色塊
-    function FocusBody({ body }) {
-      const lines = String(body).replace(/\r\n?/g, "\n").split("\n");
-      const intro = [];
-      const secs = [];
-      lines.forEach((l) => {
-        const m = l.trim().match(/^#{1,2}\s+(.*)$/);
-        if (m) secs.push({ title: m[1], lines: [] });
-        else (secs.length ? secs[secs.length - 1].lines : intro).push(l);
-      });
-      const introBlocks = parseBlocks(intro);
-      return (
-        <div className="flex flex-col gap-5">
-          {introBlocks.length > 0 && (
-            <div className="text-[16px] md:text-[17px] leading-[1.95] text-[#2b2925]"><Blocks blocks={introBlocks} /></div>
-          )}
-          {secs.map((s, i) => {
-            const k = SECTION_COLORS[i % SECTION_COLORS.length];
-            return (
-              <section key={i} className="border-2" style={{ borderColor: k.c, background: k.bg }}>
-                <h4 className="px-5 md:px-6 py-2.5 text-white serif text-xl md:text-2xl font-black tracking-wide" style={{ background: k.c }}>{s.title}</h4>
-                <div className="px-5 md:px-6 py-5 text-[16px] md:text-[17px] leading-[1.95] text-[#2b2925]"><Blocks blocks={parseBlocks(s.lines)} /></div>
-              </section>
-            );
-          })}
-        </div>
-      );
-    }
-
     // ── 主 App ────────────────────────────────────────────────────
     function App() {
       const [currentView, setCurrentView] = useState(location.hash === "#focus" ? "focus" : "data");
@@ -414,11 +375,7 @@
           date: d.日期,
           videoUrl: d.影片網址,
           keyPoints: d.重點整理,
-          what: d.WHAT,
-          soWhat: d.SOWHAT,
-          nowWhat: d.NOWWHAT,
           sources: d.來源,
-          body: d.內文,
         })).reverse();
         setFocusHistory(hist);
         // 背景更新時，正在看的那篇歷史焦點不要被換掉
@@ -793,7 +750,7 @@
                   </div>
                 ) : (
                   <>
-                    <div className="max-w-[880px] mx-auto grid grid-cols-2 bg-card border border-rule p-1.5 gap-1.5 mb-5">
+                    <div className="max-w-[1100px] mx-auto grid grid-cols-2 bg-card border border-rule p-1.5 gap-1.5 mb-5">
                       {[
                         { key: 'current', label: '當期核心戰略', icon: 'ph-lightning' },
                         { key: 'history', label: '歷史戰略回顧', icon: 'ph-clock-counter-clockwise', n: focusHistory.length },
@@ -810,7 +767,7 @@
                     </div>
 
                     {currentFocus && (
-                      <article className="max-w-[880px] mx-auto bg-card border border-rule border-t-4 border-t-ink px-5 md:px-12 py-7 md:py-10 animate-fade-in">
+                      <article className="max-w-[1100px] mx-auto bg-card border border-rule border-t-4 border-t-ink px-5 md:px-12 py-7 md:py-10 animate-fade-in">
                         {focusTab === 'history' && (
                           <button
                             onClick={() => setSelectedFocus(null)}
@@ -828,9 +785,10 @@
                         </div>
                         <div className="double-rule mb-8"></div>
 
-                        {currentFocus.videoUrl && (
-                          <figure className="mb-8">
-                            <div className="aspect-video w-full border border-ink p-1 bg-paper2">
+                        {/* 2026-11-09：不再用三個 W。左邊影片、右邊本集重點（約 300 字），下面來源 */}
+                        <div className={`grid grid-cols-1 gap-6 md:gap-8 ${currentFocus.videoUrl ? 'lg:grid-cols-[3fr_2fr] lg:items-start' : ''}`}>
+                          {currentFocus.videoUrl && (
+                            <figure className="aspect-video w-full border border-ink p-1 bg-paper2">
                               <iframe
                                 key={currentFocus.videoUrl}
                                 className="w-full h-full"
@@ -841,49 +799,26 @@
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                 allowFullScreen
                               ></iframe>
-                            </div>
-                          </figure>
-                        )}
-
-                        {String(currentFocus.body || "").trim() ? (
-                          <>
-                            {String(currentFocus.keyPoints || "").trim() && (
-                              <div className="mb-6 border-l-4 border-accent bg-paper2 px-5 md:px-6 py-4">
-                                <p className="kicker mb-1.5">本集重點</p>
-                                <p className="text-[16px] md:text-[17px] leading-[1.9] font-bold text-ink whitespace-pre-wrap">{currentFocus.keyPoints}</p>
-                              </div>
-                            )}
-                            <FocusBody body={currentFocus.body} />
-                            {String(currentFocus.sources || "").trim() && (
-                              <div className="mt-8 pt-4 border-t border-rule text-sm text-muted leading-relaxed">
-                                <p className="font-black text-ink mb-1.5"><i className="ph-bold ph-books"></i> 來源</p>
-                                <Blocks blocks={parseBlocks(String(currentFocus.sources).replace(/\r\n?/g, "\n").split("\n"))} />
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                        <div className="flex flex-col gap-5">
-                        {[
-                          { en: "WHAT", zh: "核心內容", body: currentFocus.what, c: "#24507A", bg: "#EEF3F8", icon: "ph-info" },
-                          { en: "SO WHAT", zh: "教育影響", body: currentFocus.soWhat, c: "#7A3E8E", bg: "#F5EFF7", icon: "ph-target" },
-                          { en: "NOW WHAT", zh: "行動建議", body: currentFocus.nowWhat, c: "#2F6B4F", bg: "#EDF5F0", icon: "ph-footprints", hi: true },
-                        ].map((sec) => (
-                          <section key={sec.en} className="border-2" style={{ borderColor: sec.c, background: sec.bg }}>
-                            <h4 className="flex items-center gap-2.5 px-5 md:px-6 py-2.5 text-white" style={{ background: sec.c }}>
-                              <i className={`ph-fill ${sec.icon} text-xl`}></i>
-                              <span className="serif text-xl md:text-2xl font-black tracking-wide">{sec.en}</span>
-                              <span className="text-sm font-bold opacity-85">｜{sec.zh}</span>
-                            </h4>
-                            <p className={`px-5 md:px-6 py-5 text-[16px] md:text-[17px] leading-[1.95] text-[#2b2925] whitespace-pre-wrap ${sec.hi ? 'font-bold' : ''}`}>{sec.body}</p>
-                          </section>
-                        ))}
+                            </figure>
+                          )}
+                          {String(currentFocus.keyPoints || "").trim() && (
+                            <section className="border-l-4 border-accent bg-paper2 px-5 md:px-6 py-4 md:py-5">
+                              <p className="kicker mb-2">本集重點</p>
+                              <p className="text-[16px] leading-[1.9] text-ink whitespace-pre-wrap">{currentFocus.keyPoints}</p>
+                            </section>
+                          )}
                         </div>
+                        {String(currentFocus.sources || "").trim() && (
+                          <div className="mt-8 pt-4 border-t border-rule text-sm text-muted leading-relaxed">
+                            <p className="font-black text-ink mb-1.5"><i className="ph-bold ph-books"></i> 來源</p>
+                            <Blocks blocks={parseBlocks(String(currentFocus.sources).split(/\r?\n/))} />
+                          </div>
                         )}
                       </article>
                     )}
 
                     {focusTab === 'history' && !selectedFocus && (
-                      <div className="max-w-[880px] mx-auto">
+                      <div className="max-w-[1100px] mx-auto">
                         <div className="flex items-baseline justify-between mb-3 px-1">
                           <h3 className="serif text-2xl font-black">歷史戰略檔案庫</h3>
                           <span className="text-sm text-muted font-bold">共 {focusHistory.length} 期</span>

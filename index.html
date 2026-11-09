@@ -505,13 +505,19 @@
 
             <div className="double-rule"></div>
 
-            <nav className="flex justify-center gap-8 md:gap-12">
-              <button onClick={() => setCurrentView("data")} className={`tab-link text-[15px] md:text-base py-3 ${currentView === 'data' ? 'on' : ''}`}>
-                <i className="ph-bold ph-newspaper"></i> 情報數據庫
-              </button>
-              <button onClick={openFocusView} className={`tab-link text-[15px] md:text-base py-3 ${currentView === 'focus' ? 'on' : ''}`}>
-                <i className="ph-bold ph-monitor-play"></i> 戰略焦點
-              </button>
+            <nav className="flex justify-center gap-3 md:gap-4 py-4">
+              {[
+                { key: "data", label: "情報數據庫", icon: "ph-newspaper", go: () => setCurrentView("data") },
+                { key: "focus", label: "戰略焦點", icon: "ph-monitor-play", go: openFocusView },
+              ].map(n => (
+                <button
+                  key={n.key}
+                  onClick={n.go}
+                  className={`inline-flex items-center gap-2 px-5 md:px-8 py-2.5 md:py-3 text-base md:text-lg font-black border-2 border-ink transition-colors ${currentView === n.key ? 'bg-ink text-paper shadow-[3px_3px_0_#B91C1C]' : 'bg-card text-ink hover:bg-paper2'}`}
+                >
+                  <i className={`${currentView === n.key ? 'ph-fill' : 'ph-bold'} ${n.icon} text-xl`}></i>{n.label}
+                </button>
+              ))}
             </nav>
            </div>
           </header>

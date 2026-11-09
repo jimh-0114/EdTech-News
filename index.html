@@ -462,8 +462,6 @@
 
       const currentFocus = focusTab === "current" ? focusHistory[0] : selectedFocus;
       const shown = showToday ? filteredData : filteredData.slice(0, visibleCount);
-      const lead = filteredData[0];
-      const rest = filteredData.slice(1);
 
       return (
         <div className="pb-20 animate-fade-in relative">
@@ -619,16 +617,11 @@
                     </div>
                   </div>
                 ) : showToday ? (
-                  /* ── 今日情報：頭條一則＋兩欄 ── */
-                  <div className="pt-5 flex flex-col gap-5 md:gap-6">
-                    <NewsCard key={"lead" + (lead["超連結"] || "")} item={lead} term={term} lead />
-                    {rest.length > 0 && (
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-6">
-                        {rest.map((item, idx) => (
-                          <NewsCard key={(item["超連結"] || "") + idx} item={item} term={term} />
-                        ))}
-                      </div>
-                    )}
+                  /* ── 今日情報：每則一樣大，兩欄 ── */
+                  <div className="pt-5 grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-6">
+                    {filteredData.map((item, idx) => (
+                      <NewsCard key={(item["超連結"] || "") + idx} item={item} term={term} />
+                    ))}
                   </div>
                 ) : (
                   /* ── 全部歷史：時間軸式精簡列表，整列可點，直接開原文 ── */

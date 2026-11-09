@@ -262,6 +262,109 @@
       );
     }
 
+    // ── 戰略焦點「內文」：每集自訂段落（2026-11-09）──────────────
+    // 試算表「內文」欄用簡單記號：## 段落標題、**小標**（單獨一行）、
+    // - 或 ● 條列、1. 編號、| 表格 |、**粗體**、網址自動變連結。
+    // 「內文」空白的舊集數，照舊顯示 WHAT／SO WHAT／NOW WHAT 三塊。
+    const SECTION_COLORS = [
+      { c: "#24507A", bg: "#EEF3F8" },
+      { c: "#7A3E8E", bg: "#F5EFF7" },
+      { c: "#2F6B4F", bg: "#EDF5F0" },
+      { c: "#B4560F", bg: "#FBF1E6" },
+    ];
+
+    function Inline({ text }) {
+      const out = [];
+      String(text).split(/(\*\*[^*]+\*\*|https?:\/\/[^\s）)」]+)/).forEach((p, i) => {
+        if (!p) return;
+        if (p.startsWith("**") && p.endsWith("**")) out.push(<strong key={i} className="font-black text-ink">{p.slice(2, -2)}</strong>);
+        else if (/^https?:\/\//.test(p)) out.push(<a key={i} href={p} target="_blank" rel="noopener noreferrer" className="underline decoration-rule hover:text-accent break-all">{p}</a>);
+        else out.push(p);
+      });
+      return <>{out}</>;
+    }
+
+    // 一段文字 → 區塊（段落、小標、條列、編號、表格）
+    function parseBlocks(lines) {
+      const blocks = [];
+      let cur = null;
+      const flush = () => { if (cur) blocks.push(cur); cur = null; };
+      lines.forEach((raw) => {
+        const line = raw.trim();
+        if (!line) { flush(); return; }
+        let m;
+        if (line.startsWith("|")) {
+          const cells = line.replace(/^\||\|$/g, "").split("|").map(s => s.trim());
+          if (cells.every(s => /^:?-{2,}:?$/.test(s))) return;   // 表格分隔線
+          if (!cur || cur.type !== "table") { flush(); cur = { type: "table", rows: [] }; }
+          cur.rows.push(cells);
+        } else if (/^\*\*[^*]+\*\*$/.test(line) || /^#{3,}\s/.test(line)) {
+          flush(); blocks.push({ type: "h", text: line.replace(/^#+\s*/, "").replace(/^\*\*|\*\*$/g, "") });
+        } else if ((m = line.match(/^(?:[-*]\s+|[•●・]\s*)(.*)$/))) {
+          if (!cur || cur.type !== "ul") { flush(); cur = { type: "ul", items: [] }; }
+          cur.items.push(m[1]);
+        } else if ((m = line.match(/^\d+[.、]\s*(.*)$/)) && !/^\*\*.*\*\*$/.test(m[1])) {
+          if (!cur || cur.type !== "ol") { flush(); cur = { type: "ol", items: [] }; }
+          cur.items.push(m[1]);
+        } else {
+          if (!cur || cur.type !== "p") { flush(); cur = { type: "p", lines: [] }; }
+          cur.lines.push(line);
+        }
+      });
+      flush();
+      return blocks;
+    }
+
+    function Blocks({ blocks }) {
+      return blocks.map((b, i) => {
+        if (b.type === "h") return <h5 key={i} className="serif text-lg md:text-xl font-black text-ink mt-5 mb-2 first:mt-0">{b.text}</h5>;
+        if (b.type === "p") return <p key={i} className="mb-3 last:mb-0">{b.lines.map((l, j) => <React.Fragment key={j}>{j > 0 && <br />}<Inline text={l} /></React.Fragment>)}</p>;
+        if (b.type === "ul") return <ul key={i} className="mb-3 last:mb-0 pl-5 list-disc marker:text-muted space-y-1.5">{b.items.map((t, j) => <li key={j}><Inline text={t} /></li>)}</ul>;
+        if (b.type === "ol") return <ol key={i} className="mb-3 last:mb-0 pl-6 list-decimal marker:font-bold space-y-1.5">{b.items.map((t, j) => <li key={j}><Inline text={t} /></li>)}</ol>;
+        if (b.type === "table") {
+          const [head, ...rows] = b.rows;
+          return (
+            <div key={i} className="mb-3 last:mb-0 overflow-x-auto">
+              <table className="w-full border-collapse bg-card text-[15px] md:text-base leading-relaxed">
+                <thead><tr>{head.map((c, j) => <th key={j} className="border border-rule bg-paper2 px-3 py-2 text-left font-black whitespace-nowrap">{c}</th>)}</tr></thead>
+                <tbody>{rows.map((r, j) => <tr key={j}>{head.map((_, k) => <td key={k} className="border border-rule px-3 py-2 align-top"><Inline text={r[k] || ""} /></td>)}</tr>)}</tbody>
+              </table>
+            </div>
+          );
+        }
+        return null;
+      });
+    }
+
+    // 「內文」→ 依 ## 切成幾個色塊段落；第一個 ## 之前的文字放在最前面、不加色塊
+    function FocusBody({ body }) {
+      const lines = String(body).replace(/\r\n?/g, "\n").split("\n");
+      const intro = [];
+      const secs = [];
+      lines.forEach((l) => {
+        const m = l.trim().match(/^#{1,2}\s+(.*)$/);
+        if (m) secs.push({ title: m[1], lines: [] });
+        else (secs.length ? secs[secs.length - 1].lines : intro).push(l);
+      });
+      const introBlocks = parseBlocks(intro);
+      return (
+        <div className="flex flex-col gap-5">
+          {introBlocks.length > 0 && (
+            <div className="text-[16px] md:text-[17px] leading-[1.95] text-[#2b2925]"><Blocks blocks={introBlocks} /></div>
+          )}
+          {secs.map((s, i) => {
+            const k = SECTION_COLORS[i % SECTION_COLORS.length];
+            return (
+              <section key={i} className="border-2" style={{ borderColor: k.c, background: k.bg }}>
+                <h4 className="px-5 md:px-6 py-2.5 text-white serif text-xl md:text-2xl font-black tracking-wide" style={{ background: k.c }}>{s.title}</h4>
+                <div className="px-5 md:px-6 py-5 text-[16px] md:text-[17px] leading-[1.95] text-[#2b2925]"><Blocks blocks={parseBlocks(s.lines)} /></div>
+              </section>
+            );
+          })}
+        </div>
+      );
+    }
+
     // ── 主 App ────────────────────────────────────────────────────
     function App() {
       const [currentView, setCurrentView] = useState(location.hash === "#focus" ? "focus" : "data");
@@ -314,6 +417,8 @@
           what: d.WHAT,
           soWhat: d.SOWHAT,
           nowWhat: d.NOWWHAT,
+          sources: d.來源,
+          body: d.內文,
         })).reverse();
         setFocusHistory(hist);
         // 背景更新時，正在看的那篇歷史焦點不要被換掉
@@ -740,6 +845,23 @@
                           </figure>
                         )}
 
+                        {String(currentFocus.body || "").trim() ? (
+                          <>
+                            {String(currentFocus.keyPoints || "").trim() && (
+                              <div className="mb-6 border-l-4 border-accent bg-paper2 px-5 md:px-6 py-4">
+                                <p className="kicker mb-1.5">本集重點</p>
+                                <p className="text-[16px] md:text-[17px] leading-[1.9] font-bold text-ink whitespace-pre-wrap">{currentFocus.keyPoints}</p>
+                              </div>
+                            )}
+                            <FocusBody body={currentFocus.body} />
+                            {String(currentFocus.sources || "").trim() && (
+                              <div className="mt-8 pt-4 border-t border-rule text-sm text-muted leading-relaxed">
+                                <p className="font-black text-ink mb-1.5"><i className="ph-bold ph-books"></i> 來源</p>
+                                <Blocks blocks={parseBlocks(String(currentFocus.sources).replace(/\r\n?/g, "\n").split("\n"))} />
+                              </div>
+                            )}
+                          </>
+                        ) : (
                         <div className="flex flex-col gap-5">
                         {[
                           { en: "WHAT", zh: "核心內容", body: currentFocus.what, c: "#24507A", bg: "#EEF3F8", icon: "ph-info" },
@@ -756,6 +878,7 @@
                           </section>
                         ))}
                         </div>
+                        )}
                       </article>
                     )}
 

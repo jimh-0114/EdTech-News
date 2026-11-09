@@ -29,6 +29,7 @@
             paper:  '#FAF7F0',
             paper2: '#F2EDE2',
             card:   '#FFFDF8',
+            desk:   '#ECE5D6',
             ink:    '#1A1A1A',
             muted:  '#6B6358',
             rule:   '#D9D2C3',
@@ -43,7 +44,7 @@
   </script>
   <style>
     html { scroll-behavior: smooth; }
-    body { font-family: 'Inter', 'Noto Sans TC', sans-serif; -webkit-font-smoothing: antialiased; background: #FAF7F0; color: #1A1A1A; }
+    body { font-family: 'Inter', 'Noto Sans TC', sans-serif; -webkit-font-smoothing: antialiased; background: #ECE5D6; color: #1A1A1A; }
     .mono { font-family: 'Inter', sans-serif; font-variant-numeric: tabular-nums; }
     .serif { font-family: 'Noto Serif TC', serif; }
     .animate-fade-in { animation: fadeIn 0.3s ease-out; }
@@ -129,6 +130,23 @@
 
     const CATEGORIES = ["生產力工具", "政策與產業", "科技與教學", "學校現場"];
     const PAGE_SIZE = 80;
+    // 四個分類各一個顏色＋圖示，卡片、分類鈕、統計、歷史列表都用同一套
+    const CAT = {
+      "生產力工具": { c: "#1F5F99", bg: "#E4EDF6", icon: "ph-wrench" },
+      "政策與產業": { c: "#7A3E8E", bg: "#F0E6F3", icon: "ph-bank" },
+      "科技與教學": { c: "#2F7D4F", bg: "#E3F0E7", icon: "ph-chalkboard-teacher" },
+      "學校現場":   { c: "#B4560F", bg: "#F8EADC", icon: "ph-student" },
+    };
+    const catOf = (name) => CAT[name] || { c: "#1A1A1A", bg: "#F2EDE2", icon: "ph-newspaper" };
+
+    function CatChip({ name, size }) {
+      const k = catOf(name);
+      return (
+        <span className={`shrink-0 inline-flex items-center gap-1 font-black text-white ${size === "sm" ? "text-[11px] px-1.5 py-0.5" : "text-xs px-2 py-1"}`} style={{ background: k.c }}>
+          <i className={`ph-fill ${k.icon}`}></i>{name}
+        </span>
+      );
+    }
     const dateKey = (s) => new Date(String(s || "").replace(/\./g, '-')).getTime() || 0;
     const shortDate = (s) => String(s || "").slice(5);   // 2026.11.09 → 11.09
 
@@ -206,10 +224,10 @@
       const summary = String(item["摘要"] || "");
       const long = summary.length > (lead ? 200 : 110);
       return (
-        <article className={`bg-card border border-rule ${lead ? 'border-t-4' : 'border-t-2'} border-t-ink px-5 pt-4 pb-5 md:px-7 md:pt-5 md:pb-6 flex flex-col h-full shadow-[0_1px_0_rgba(26,26,26,0.06)] hover:shadow-[0_6px_18px_-8px_rgba(26,26,26,0.25)] transition-shadow`}>
+        <article className={`bg-card border border-rule ${lead ? 'border-t-4' : 'border-t-2'} px-5 pt-4 pb-5 md:px-7 md:pt-5 md:pb-6 flex flex-col h-full shadow-[0_1px_0_rgba(26,26,26,0.06)] hover:shadow-[0_6px_18px_-8px_rgba(26,26,26,0.25)] transition-shadow`} style={{ borderTopColor: catOf(item["資訊類別"]).c }}>
           <div className="flex items-center justify-between gap-3 mb-2.5">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="kicker shrink-0">{item["資訊類別"]}</span>
+              <CatChip name={item["資訊類別"]} />
               {item.isRecommended && (
                 <span className="shrink-0 text-[11px] font-black tracking-wider text-paper bg-accent px-1.5 py-0.5 inline-flex items-center gap-1">
                   <i className="ph-fill ph-crown"></i> 編輯精選
@@ -448,9 +466,10 @@
       const rest = filteredData.slice(1);
 
       return (
-        <div className="max-w-[1200px] mx-auto px-4 md:px-8 pb-20 animate-fade-in relative">
-          {/* ── 報頭 ── */}
-          <header className="pt-4 md:pt-5">
+        <div className="pb-20 animate-fade-in relative">
+          {/* ── 報頭：獨立一條亮色橫帶，跟下面內容分開 ── */}
+          <header className="bg-card border-b-2 border-ink shadow-[0_2px_10px_-4px_rgba(26,26,26,0.25)]">
+           <div className="max-w-[1200px] mx-auto px-4 md:px-8 pt-4 md:pt-5">
             <div className="flex items-center justify-between gap-3 text-xs text-muted font-bold pb-3">
               <span className="flex items-center gap-2 min-w-0">
                 <span className="truncate">{DATELINE}</span>
@@ -488,7 +507,7 @@
 
             <div className="double-rule"></div>
 
-            <nav className="flex justify-center gap-8 md:gap-12 border-b border-rule">
+            <nav className="flex justify-center gap-8 md:gap-12">
               <button onClick={() => setCurrentView("data")} className={`tab-link text-[15px] md:text-base py-3 ${currentView === 'data' ? 'on' : ''}`}>
                 <i className="ph-bold ph-newspaper"></i> 情報數據庫
               </button>
@@ -496,13 +515,15 @@
                 <i className="ph-bold ph-monitor-play"></i> 戰略焦點
               </button>
             </nav>
+           </div>
           </header>
 
+          <div className="max-w-[1200px] mx-auto px-4 md:px-8">
           <main className="pt-6 md:pt-8">
             {currentView === "data" && (
               <>
                 {/* ── 今日統計：一列報紙式數字欄 ── */}
-                <section className="grid grid-cols-5 border-y border-ink mb-6">
+                <section className="grid grid-cols-5 bg-card border border-rule mb-5">
                   {[
                     { label: hasToday ? "今日新增" : `${shortDate(viewDate)} 新增`, tab: "全部情報", value: stats.total },
                     { label: "生產力工具", tab: "生產力工具", value: stats.tools },
@@ -511,22 +532,24 @@
                     { label: "學校現場", tab: "學校現場", value: stats.school }
                   ].map((s, i) => {
                     const on = showToday && activeTab === s.tab;
+                    const k = i === 0 ? { c: "#1A1A1A" } : catOf(s.tab);
                     return (
                       <button
                         key={i}
                         onClick={() => pickStat(s.tab)}
-                        className={`py-3 md:py-4 px-1 text-center transition-colors hover:bg-paper2 ${i > 0 ? 'border-l border-rule' : ''} ${on ? 'bg-paper2' : ''}`}
+                        className={`py-3 md:py-4 px-1 text-center transition-colors hover:bg-paper2 border-t-4 ${i > 0 ? 'border-l border-l-rule' : ''} ${on ? 'bg-paper2' : ''}`}
+                        style={{ borderTopColor: k.c }}
                       >
-                        <span className={`serif block font-black leading-none text-2xl md:text-4xl mb-1.5 ${on ? 'text-accent' : 'text-ink'}`}>{String(s.value).padStart(2, '0')}</span>
-                        <span className="block text-[10px] sm:text-[11px] md:text-[13px] font-bold text-muted sm:tracking-wide whitespace-nowrap">{s.label}</span>
+                        <span className="serif block font-black leading-none text-2xl md:text-4xl mb-1.5" style={{ color: k.c }}>{String(s.value).padStart(2, '0')}</span>
+                        <span className={`block text-[10px] sm:text-[11px] md:text-[13px] font-bold sm:tracking-wide whitespace-nowrap ${on ? 'text-ink underline decoration-2 underline-offset-4' : 'text-muted'}`}>{s.label}</span>
                       </button>
                     );
                   })}
                 </section>
 
                 {/* ── 篩選列 ── */}
-                <section className="bg-paper md:sticky md:top-0 md:z-20 border-b border-ink pb-0 mb-2">
-                  <div className="flex flex-col lg:flex-row lg:items-end gap-3 lg:gap-6">
+                <section className="bg-card border border-rule px-4 md:px-5 pt-1 md:sticky md:top-2 md:z-20 shadow-[0_4px_12px_-8px_rgba(26,26,26,0.3)]">
+                  <div className="flex flex-col lg:flex-row lg:items-end gap-3 lg:gap-4">
                     <div className="flex items-end gap-5 shrink-0 border-b border-rule lg:border-b-0">
                       <button className={`tab-link py-2.5 ${showToday ? 'on' : ''}`} onClick={() => setShowToday(true)}>
                         {hasToday ? '今日情報' : '最新情報'}
@@ -537,20 +560,30 @@
 
                     <div className="hidden lg:block w-px h-6 bg-rule mb-3"></div>
 
-                    <div className="flex gap-5 overflow-x-auto no-scrollbar flex-1">
-                      {["全部情報", ...CATEGORIES].map(tab => (
-                        <button key={tab} onClick={() => setActiveTab(tab)} className={`tab-link text-sm py-2.5 ${activeTab === tab ? 'on' : ''}`}>
-                          {tab}<span className="mono text-[11px] text-muted font-semibold">{tabCounts[tab]}</span>
-                        </button>
-                      ))}
+                    <div className="flex gap-1.5 overflow-x-auto no-scrollbar flex-1 min-w-0 items-center py-1 lg:pb-2.5">
+                      {["全部情報", ...CATEGORIES].map(tab => {
+                        const k = tab === "全部情報" ? { c: "#1A1A1A", bg: "#F2EDE2", icon: "ph-squares-four" } : catOf(tab);
+                        const on = activeTab === tab;
+                        return (
+                          <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className="shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 text-sm font-black px-2.5 py-1.5 border-2 transition-colors"
+                            style={on ? { background: k.c, borderColor: k.c, color: "#fff" } : { background: k.bg, borderColor: "transparent", color: k.c }}
+                          >
+                            <i className={`ph-fill ${k.icon}`}></i>{tab}
+                            <span className="mono text-[11px] font-bold" style={{ opacity: on ? 0.85 : 0.7 }}>{tabCounts[tab]}</span>
+                          </button>
+                        );
+                      })}
                     </div>
 
-                    <div className="relative w-full lg:w-[240px] shrink-0 pb-2">
+                    <div className="relative w-full lg:w-[190px] shrink-0 pb-2">
                       <i className="ph-bold ph-magnifying-glass absolute left-0 top-1/2 -translate-y-[60%] text-muted text-lg pointer-events-none"></i>
                       <input
                         ref={searchRef}
                         type="search"
-                        placeholder="搜尋標題、摘要或出處"
+                        placeholder="搜尋關鍵字" title="搜尋標題、摘要或出處"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="block w-full pl-7 pr-7 py-2 bg-transparent border-0 border-b border-rule focus:border-ink text-sm font-bold focus:outline-none placeholder-[#9a9184] transition-colors [&::-webkit-search-cancel-button]:hidden"
@@ -599,7 +632,7 @@
                   </div>
                 ) : (
                   /* ── 全部歷史：時間軸式精簡列表，整列可點，直接開原文 ── */
-                  <div className="pt-2">
+                  <div className="mt-5 bg-card border border-rule border-t-2 border-t-ink px-3 md:px-5 pb-3">
                     <div className="flex items-center gap-3 px-1 py-2 border-b border-ink text-[11px] font-black text-muted tracking-widest">
                       <span className="w-[44px] sm:w-[84px] shrink-0">日期</span>
                       <span className="w-[34px] sm:w-[40px] shrink-0 text-center">分數</span>
@@ -627,7 +660,7 @@
                             <Highlight text={item["標題"]} term={term} />
                           </span>
                         </span>
-                        <span className="hidden md:inline kicker !text-[11px] !tracking-wider shrink-0">{item["資訊類別"]}</span>
+                        <span className="hidden md:inline-flex shrink-0 items-center gap-1 text-[11px] font-black px-1.5 py-0.5" style={{ background: catOf(item["資訊類別"]).bg, color: catOf(item["資訊類別"]).c }}><i className={`ph-fill ${catOf(item["資訊類別"]).icon}`}></i>{item["資訊類別"]}</span>
                         <i className="ph-bold ph-arrow-up-right text-base text-rule group-hover:text-accent transition-colors shrink-0"></i>
                       </a>
                     ))}
@@ -656,17 +689,24 @@
                   </div>
                 ) : (
                   <>
-                    <div className="flex justify-center gap-8 border-b border-rule mb-8">
-                      <button className={`tab-link py-2.5 ${focusTab === 'current' ? 'on' : ''}`} onClick={() => { setFocusTab('current'); setSelectedFocus(null); }}>
-                        當期核心戰略
-                      </button>
-                      <button className={`tab-link py-2.5 ${focusTab === 'history' ? 'on' : ''}`} onClick={() => { setFocusTab('history'); setSelectedFocus(null); }}>
-                        歷史戰略回顧 <span className="mono text-[11px] text-muted font-semibold">{focusHistory.length}</span>
-                      </button>
+                    <div className="max-w-[880px] mx-auto grid grid-cols-2 bg-card border border-rule p-1.5 gap-1.5 mb-5">
+                      {[
+                        { key: 'current', label: '當期核心戰略', icon: 'ph-lightning' },
+                        { key: 'history', label: '歷史戰略回顧', icon: 'ph-clock-counter-clockwise', n: focusHistory.length },
+                      ].map(t => (
+                        <button
+                          key={t.key}
+                          onClick={() => { setFocusTab(t.key); setSelectedFocus(null); }}
+                          className={`py-2.5 md:py-3 inline-flex items-center justify-center gap-2 text-[15px] md:text-base font-black transition-colors ${focusTab === t.key ? 'bg-ink text-paper' : 'text-muted hover:bg-paper2 hover:text-ink'}`}
+                        >
+                          <i className={`ph-fill ${t.icon}`}></i>{t.label}
+                          {t.n != null && <span className="mono text-xs opacity-70">{t.n}</span>}
+                        </button>
+                      ))}
                     </div>
 
                     {currentFocus && (
-                      <article className="max-w-[820px] mx-auto animate-fade-in">
+                      <article className="max-w-[880px] mx-auto bg-card border border-rule border-t-4 border-t-ink px-5 md:px-12 py-7 md:py-10 animate-fade-in">
                         {focusTab === 'history' && (
                           <button
                             onClick={() => setSelectedFocus(null)}
@@ -676,13 +716,16 @@
                           </button>
                         )}
                         <div className="text-center mb-6">
-                          <p className="kicker mb-3">{focusTab === 'current' ? "當期核心戰略" : "歷史戰略回顧"}<span className="text-rule mx-2">|</span><span className="mono text-muted tracking-normal">{currentFocus.date}</span></p>
+                          <div className="flex justify-center items-center gap-2 mb-4">
+                            <span className="inline-flex items-center gap-1 text-xs font-black text-white bg-accent px-2 py-1"><i className="ph-fill ph-lightning"></i>{focusTab === 'current' ? "當期核心戰略" : "歷史戰略回顧"}</span>
+                            <span className="inline-flex items-center gap-1 text-xs font-bold mono text-ink bg-paper2 border border-rule px-2 py-1"><i className="ph-bold ph-calendar-blank"></i>{currentFocus.date}</span>
+                          </div>
                           <h2 className="serif text-3xl md:text-[2.6rem] font-black text-ink leading-tight">{currentFocus.title}</h2>
                         </div>
                         <div className="double-rule mb-8"></div>
 
                         {currentFocus.videoUrl && (
-                          <figure className="mb-10">
+                          <figure className="mb-8">
                             <div className="aspect-video w-full border border-ink p-1 bg-paper2">
                               <iframe
                                 key={currentFocus.videoUrl}
@@ -698,39 +741,46 @@
                           </figure>
                         )}
 
+                        <div className="flex flex-col gap-5">
                         {[
-                          { en: "WHAT", zh: "核心內容", body: currentFocus.what },
-                          { en: "SO WHAT", zh: "教育影響", body: currentFocus.soWhat },
-                          { en: "NOW WHAT", zh: "行動建議", body: currentFocus.nowWhat, hi: true },
+                          { en: "WHAT", zh: "核心內容", body: currentFocus.what, c: "#24507A", bg: "#EEF3F8", icon: "ph-info" },
+                          { en: "SO WHAT", zh: "教育影響", body: currentFocus.soWhat, c: "#7A3E8E", bg: "#F5EFF7", icon: "ph-target" },
+                          { en: "NOW WHAT", zh: "行動建議", body: currentFocus.nowWhat, c: "#2F6B4F", bg: "#EDF5F0", icon: "ph-footprints", hi: true },
                         ].map((sec) => (
-                          <section key={sec.en} className={`border-t border-ink pt-5 pb-8 ${sec.hi ? 'bg-paper2 border-l-[3px] border-l-accent px-5 md:px-7 pt-6' : ''}`}>
-                            <h4 className="mb-4 flex items-baseline gap-3">
-                              <span className="serif text-2xl md:text-[1.7rem] font-black text-ink">{sec.en}</span>
-                              <span className="kicker">{sec.zh}</span>
+                          <section key={sec.en} className="border-2" style={{ borderColor: sec.c, background: sec.bg }}>
+                            <h4 className="flex items-center gap-2.5 px-5 md:px-6 py-2.5 text-white" style={{ background: sec.c }}>
+                              <i className={`ph-fill ${sec.icon} text-xl`}></i>
+                              <span className="serif text-xl md:text-2xl font-black tracking-wide">{sec.en}</span>
+                              <span className="text-sm font-bold opacity-85">｜{sec.zh}</span>
                             </h4>
-                            <p className={`text-[16px] md:text-[17px] leading-[1.95] text-[#2b2925] whitespace-pre-wrap ${sec.hi ? 'font-bold' : ''}`}>{sec.body}</p>
+                            <p className={`px-5 md:px-6 py-5 text-[16px] md:text-[17px] leading-[1.95] text-[#2b2925] whitespace-pre-wrap ${sec.hi ? 'font-bold' : ''}`}>{sec.body}</p>
                           </section>
                         ))}
+                        </div>
                       </article>
                     )}
 
                     {focusTab === 'history' && !selectedFocus && (
-                      <div className="max-w-[900px] mx-auto">
-                        <h3 className="serif text-2xl font-black text-center mb-2">歷史戰略檔案庫</h3>
-                        <p className="text-center text-sm text-muted font-bold mb-6">共 {focusHistory.length} 期</p>
-                        <div className="border-t-2 border-ink">
+                      <div className="max-w-[880px] mx-auto">
+                        <div className="flex items-baseline justify-between mb-3 px-1">
+                          <h3 className="serif text-2xl font-black">歷史戰略檔案庫</h3>
+                          <span className="text-sm text-muted font-bold">共 {focusHistory.length} 期</span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {focusHistory.map((item, idx) => (
                             <button
                               key={idx}
                               onClick={() => { setSelectedFocus(item); window.scrollTo({ top: 0 }); }}
-                              className="w-full text-left flex items-baseline gap-4 md:gap-6 py-4 px-1 border-b border-rule hover:bg-paper2 transition-colors group"
+                              className="text-left flex gap-4 p-4 md:p-5 bg-card border border-rule border-t-4 border-t-ink hover:border-t-accent hover:shadow-[0_6px_18px_-8px_rgba(26,26,26,0.3)] transition-all group"
                             >
-                              <span className="serif text-2xl md:text-3xl font-black text-rule group-hover:text-accent w-10 md:w-12 shrink-0 transition-colors">{String(focusHistory.length - idx).padStart(2, '0')}</span>
-                              <span className="flex-1 min-w-0">
-                                <span className="serif block text-lg md:text-xl font-bold text-ink leading-snug group-hover:text-accent transition-colors">{item.title}</span>
-                                <span className="mono block text-xs text-muted font-semibold mt-1">{item.date}</span>
+                              <span className="serif text-3xl font-black text-muted/40 group-hover:text-accent leading-none shrink-0 w-11 transition-colors">{String(focusHistory.length - idx).padStart(2, '0')}</span>
+                              <span className="flex-1 min-w-0 flex flex-col">
+                                <span className="serif text-lg font-bold text-ink leading-snug group-hover:text-accent transition-colors">{item.title}</span>
+                                <span className="mt-auto pt-3 flex items-center justify-between text-xs">
+                                  <span className="mono text-muted font-semibold"><i className="ph-bold ph-calendar-blank"></i> {item.date}</span>
+                                  <span className="font-black text-ink group-hover:text-accent inline-flex items-center gap-1">觀看 <i className="ph-bold ph-arrow-right"></i></span>
+                                </span>
                               </span>
-                              <i className="ph-bold ph-arrow-right text-muted group-hover:text-accent shrink-0"></i>
                             </button>
                           ))}
                         </div>
@@ -745,6 +795,7 @@
           <footer className="mt-16 pt-4 border-t-2 border-ink text-center text-xs text-muted font-bold tracking-wider">
             數位部教育科技資訊報報 · 每日更新
           </footer>
+          </div>
 
           {showTop && (
             <button

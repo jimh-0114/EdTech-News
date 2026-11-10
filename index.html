@@ -306,10 +306,16 @@
         }));
         setNewsData(formatted);
 
+        // YouTube 分享連結（youtu.be／watch?v=／shorts／live）轉成可嵌入的 embed 網址（2026-11-10）
+        const toEmbed = (u) => {
+          u = String(u || '').trim();
+          const m = u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|live\/|embed\/))([\w-]{11})/);
+          return m ? `https://www.youtube.com/embed/${m[1]}` : u;
+        };
         const hist = (result.focus || []).map(d => ({
           title: d.標題,
           date: d.日期,
-          videoUrl: d.影片網址,
+          videoUrl: toEmbed(d.影片網址),
           keyPoints: d.重點整理,
           what: d.WHAT,
           soWhat: d.SOWHAT,

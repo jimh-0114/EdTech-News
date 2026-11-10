@@ -262,70 +262,6 @@
       );
     }
 
-    // ── 戰略焦點「來源」：- 條列、**粗體**、網址自動變連結（2026-11-09）──
-    function Inline({ text }) {
-      const out = [];
-      String(text).split(/(\*\*[^*]+\*\*|https?:\/\/[^\s）)」]+)/).forEach((p, i) => {
-        if (!p) return;
-        if (p.startsWith("**") && p.endsWith("**")) out.push(<strong key={i} className="font-black text-ink">{p.slice(2, -2)}</strong>);
-        else if (/^https?:\/\//.test(p)) out.push(<a key={i} href={p} target="_blank" rel="noopener noreferrer" className="underline decoration-rule hover:text-accent break-all">{p}</a>);
-        else out.push(p);
-      });
-      return <>{out}</>;
-    }
-
-    // 一段文字 → 區塊（段落、小標、條列、編號、表格）
-    function parseBlocks(lines) {
-      const blocks = [];
-      let cur = null;
-      const flush = () => { if (cur) blocks.push(cur); cur = null; };
-      lines.forEach((raw) => {
-        const line = raw.trim();
-        if (!line) { flush(); return; }
-        let m;
-        if (line.startsWith("|")) {
-          const cells = line.replace(/^\||\|$/g, "").split("|").map(s => s.trim());
-          if (cells.every(s => /^:?-{2,}:?$/.test(s))) return;   // 表格分隔線
-          if (!cur || cur.type !== "table") { flush(); cur = { type: "table", rows: [] }; }
-          cur.rows.push(cells);
-        } else if (/^\*\*[^*]+\*\*$/.test(line) || /^#{3,}\s/.test(line)) {
-          flush(); blocks.push({ type: "h", text: line.replace(/^#+\s*/, "").replace(/^\*\*|\*\*$/g, "") });
-        } else if ((m = line.match(/^(?:[-*]\s+|[•●・]\s*)(.*)$/))) {
-          if (!cur || cur.type !== "ul") { flush(); cur = { type: "ul", items: [] }; }
-          cur.items.push(m[1]);
-        } else if ((m = line.match(/^\d+[.、]\s*(.*)$/)) && !/^\*\*.*\*\*$/.test(m[1])) {
-          if (!cur || cur.type !== "ol") { flush(); cur = { type: "ol", items: [] }; }
-          cur.items.push(m[1]);
-        } else {
-          if (!cur || cur.type !== "p") { flush(); cur = { type: "p", lines: [] }; }
-          cur.lines.push(line);
-        }
-      });
-      flush();
-      return blocks;
-    }
-
-    function Blocks({ blocks }) {
-      return blocks.map((b, i) => {
-        if (b.type === "h") return <h5 key={i} className="serif text-lg md:text-xl font-black text-ink mt-5 mb-2 first:mt-0">{b.text}</h5>;
-        if (b.type === "p") return <p key={i} className="mb-3 last:mb-0">{b.lines.map((l, j) => <React.Fragment key={j}>{j > 0 && <br />}<Inline text={l} /></React.Fragment>)}</p>;
-        if (b.type === "ul") return <ul key={i} className="mb-3 last:mb-0 pl-5 list-disc marker:text-muted space-y-1.5">{b.items.map((t, j) => <li key={j}><Inline text={t} /></li>)}</ul>;
-        if (b.type === "ol") return <ol key={i} className="mb-3 last:mb-0 pl-6 list-decimal marker:font-bold space-y-1.5">{b.items.map((t, j) => <li key={j}><Inline text={t} /></li>)}</ol>;
-        if (b.type === "table") {
-          const [head, ...rows] = b.rows;
-          return (
-            <div key={i} className="mb-3 last:mb-0 overflow-x-auto">
-              <table className="w-full border-collapse bg-card text-[15px] md:text-base leading-relaxed">
-                <thead><tr>{head.map((c, j) => <th key={j} className="border border-rule bg-paper2 px-3 py-2 text-left font-black whitespace-nowrap">{c}</th>)}</tr></thead>
-                <tbody>{rows.map((r, j) => <tr key={j}>{head.map((_, k) => <td key={k} className="border border-rule px-3 py-2 align-top"><Inline text={r[k] || ""} /></td>)}</tr>)}</tbody>
-              </table>
-            </div>
-          );
-        }
-        return null;
-      });
-    }
-
     // ── 主 App ────────────────────────────────────────────────────
     function App() {
       const [currentView, setCurrentView] = useState(location.hash === "#focus" ? "focus" : "data");
@@ -375,7 +311,9 @@
           date: d.日期,
           videoUrl: d.影片網址,
           keyPoints: d.重點整理,
-          sources: d.來源,
+          what: d.WHAT,
+          soWhat: d.SOWHAT,
+          nowWhat: d.NOWWHAT,
         })).reverse();
         setFocusHistory(hist);
         // 背景更新時，正在看的那篇歷史焦點不要被換掉
@@ -750,7 +688,7 @@
                   </div>
                 ) : (
                   <>
-                    <div className="max-w-[1100px] mx-auto grid grid-cols-2 bg-card border border-rule p-1.5 gap-1.5 mb-5">
+                    <div className="max-w-[880px] mx-auto grid grid-cols-2 bg-card border border-rule p-1.5 gap-1.5 mb-5">
                       {[
                         { key: 'current', label: '當期核心戰略', icon: 'ph-lightning' },
                         { key: 'history', label: '歷史戰略回顧', icon: 'ph-clock-counter-clockwise', n: focusHistory.length },
@@ -767,7 +705,7 @@
                     </div>
 
                     {currentFocus && (
-                      <article className="max-w-[1100px] mx-auto bg-card border border-rule border-t-4 border-t-ink px-5 md:px-12 py-7 md:py-10 animate-fade-in">
+                      <article className="max-w-[880px] mx-auto bg-card border border-rule border-t-4 border-t-ink px-5 md:px-12 py-7 md:py-10 animate-fade-in">
                         {focusTab === 'history' && (
                           <button
                             onClick={() => setSelectedFocus(null)}
@@ -785,10 +723,9 @@
                         </div>
                         <div className="double-rule mb-8"></div>
 
-                        {/* 2026-11-09：不再用三個 W。左邊影片、右邊本集重點（約 300 字），下面來源 */}
-                        <div className={`grid grid-cols-1 gap-6 md:gap-8 ${currentFocus.videoUrl ? 'lg:grid-cols-[3fr_2fr] lg:items-start' : ''}`}>
-                          {currentFocus.videoUrl && (
-                            <figure className="aspect-video w-full border border-ink p-1 bg-paper2">
+                        {currentFocus.videoUrl && (
+                          <figure className="mb-8">
+                            <div className="aspect-video w-full border border-ink p-1 bg-paper2">
                               <iframe
                                 key={currentFocus.videoUrl}
                                 className="w-full h-full"
@@ -799,26 +736,31 @@
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                 allowFullScreen
                               ></iframe>
-                            </figure>
-                          )}
-                          {String(currentFocus.keyPoints || "").trim() && (
-                            <section className="border-l-4 border-accent bg-paper2 px-5 md:px-6 py-4 md:py-5">
-                              <p className="kicker mb-2">本集重點</p>
-                              <p className="text-[16px] leading-[1.9] text-ink whitespace-pre-wrap">{currentFocus.keyPoints}</p>
-                            </section>
-                          )}
-                        </div>
-                        {String(currentFocus.sources || "").trim() && (
-                          <div className="mt-8 pt-4 border-t border-rule text-sm text-muted leading-relaxed">
-                            <p className="font-black text-ink mb-1.5"><i className="ph-bold ph-books"></i> 來源</p>
-                            <Blocks blocks={parseBlocks(String(currentFocus.sources).split(/\r?\n/))} />
-                          </div>
+                            </div>
+                          </figure>
                         )}
+
+                        <div className="flex flex-col gap-5">
+                        {[
+                          { en: "WHAT", zh: "核心內容", body: currentFocus.what, c: "#24507A", bg: "#EEF3F8", icon: "ph-info" },
+                          { en: "SO WHAT", zh: "教育影響", body: currentFocus.soWhat, c: "#7A3E8E", bg: "#F5EFF7", icon: "ph-target" },
+                          { en: "NOW WHAT", zh: "行動建議", body: currentFocus.nowWhat, c: "#2F6B4F", bg: "#EDF5F0", icon: "ph-footprints", hi: true },
+                        ].map((sec) => (
+                          <section key={sec.en} className="border-2" style={{ borderColor: sec.c, background: sec.bg }}>
+                            <h4 className="flex items-center gap-2.5 px-5 md:px-6 py-2.5 text-white" style={{ background: sec.c }}>
+                              <i className={`ph-fill ${sec.icon} text-xl`}></i>
+                              <span className="serif text-xl md:text-2xl font-black tracking-wide">{sec.en}</span>
+                              <span className="text-sm font-bold opacity-85">｜{sec.zh}</span>
+                            </h4>
+                            <p className={`px-5 md:px-6 py-5 text-[16px] md:text-[17px] leading-[1.95] text-[#2b2925] whitespace-pre-wrap ${sec.hi ? 'font-bold' : ''}`}>{sec.body}</p>
+                          </section>
+                        ))}
+                        </div>
                       </article>
                     )}
 
                     {focusTab === 'history' && !selectedFocus && (
-                      <div className="max-w-[1100px] mx-auto">
+                      <div className="max-w-[880px] mx-auto">
                         <div className="flex items-baseline justify-between mb-3 px-1">
                           <h3 className="serif text-2xl font-black">歷史戰略檔案庫</h3>
                           <span className="text-sm text-muted font-bold">共 {focusHistory.length} 期</span>
